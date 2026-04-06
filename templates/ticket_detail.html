@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+{% block title %}#{{ ticket.id }} · TicketAI{% endblock %}
+{% block breadcrumb %}
+  <a href="/view/tickets" style="color:var(--text-2);text-decoration:none;">Tickets</a>
+  / #{{ ticket.id }}
+{% endblock %}
+{% block content %}
+
+<div style="max-width:1080px;margin:0 auto;">
+
+  <!-- Ticket header -->
+  <div class="ticket-header" style="margin-bottom:16px;">
+    <div class="ticket-meta-row">
+      <span class="ticket-id">#{{ ticket.id }}</span>
+      {% set s = ticket.status.lower().replace(' ','_') %}
+      <span class="badge badge-{{ s }}">{{ ticket.status }}</span>
+      {% if ticket.ai_analysis %}
+        <span class="badge badge-{{ ticket.ai_analysis.severity.lower() }}">
+          {{ ticket.ai_analysis.severity }}
+        </span>
+        {% if ticket.ai_analysis.resolution_path == 'Auto-resolve' %}
+          <span class="badge badge-auto">⚡ Auto-resolved</span>
+        {% else %}
+          <span class="badge badge-assign-path">◉ Needs Assignment</span>
+        {% endif %}
+      {% endif %}
+    </div>
+    <div class="ticket-title-h">{{ ticket.title }}</div>
+    <div class="ticket-by">
+      Submitted by
+      <strong style="color:var(--text-2);">{{ ticket.submitter_name }}</strong>
+      &nbsp;·&nbsp; {{ ticket.submitter_email }}
+      &nbsp;·&nbsp; {{ ticket.created_at.strftime('%d %b %Y at %I:%M %p') }}
+    </div>
+  </div>
+
+  <div class="detail-grid">
+
+    <!-- ── LEFT COLUMN ────────────────────── -->
+    <div class="detail-left">
+
+      <!-- Description -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">◎</span> Description
+          </div>
+        </div>
+        <div class="card-pad">
+          <p style="color:var(--text-2);line-height:1.75;font-size:14px;
+            white-space:pre-wrap;">{{ ticket.body }}</p>
+        </div>
+      </div>
+
+      <!-- AI Analysis -->
+      {% if ticket.ai_analysis %}
+      {% set ai = ticket.ai_analysis %}
+      <div class="card ai-panel">
+        <div class="card-header">
+          <div class="card-title">
+            <span style="font-size:16px;">⚡</span> AI Analysis
+          </div>
+          <span class="ai-confidence">{{ ai.confidence_score }}% confidence</span>
+        </div>
+        <div class="card-pad">
+
+          <!-- Low confidence warning -->
+          {% if ai.confidence_score < 60 %}
+          <div style="background:rgba(245,158,11,0.08);
+            border:1px solid rgba(245,158,11,0.2);
+            border-radius:8px;padding:10px 14px;margin-bottom:12px;
+            display:flex;align-items:center;gap:10px;">
+            <span style="font-size:16px;">⚠</span>
+            <div>
+              <div style="font-size:12.5px;font-weight:600;color:var(--amber);">
+                Low confidence — {{ ai.confidence_score }}%
+              </div>
+              <div style="font-size:12px;color:rgba(245,158,11,0.7);margin-top:2px;">
+                AI was uncertain. Ticket force-assigned to a human agent for review.
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Summary -->
+          <div class="ai-summary">{{ ai.summary }}</div>
+
+          <!-- Fields grid -->
+          <div class="ai-fields">
+            {% for key, val in [
+              ('Category',        ai.category),
+              ('Severity',        ai.severity),
+              ('Sentiment',       ai.sentiment),
+              ('Department',      ai.suggested_department),
+              ('Est. Resolution', ai.estimated_resolution_time),
+              ('Path',            ai.resolution_path)
+            ] %}
+            <div class="ai-field">
+              <div class="ai-field-key">{{ key }}</div>
+              <div class="ai-field-val">{{ val or '—' }}</div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <!-- Routing reason -->
+          {% if ai.routing_reason %}
+          <div class="routing-pill">
+            <strong>Why routed here:</strong> {{ ai.routing_reason }}
+          </div>
+          {% endif %}
+
+          <!-- Auto response -->
+          {% if ai.auto_response %}
+          <div class="auto-box">
+            <div class="auto-box-header">✓ Auto-Resolution Response</div>
+            <div class="auto-box-text">{{ ai.auto_response }}</div>
+
+            {% if not ticket.feedback %}
+            <div class="feedback-row">
+              Was this helpful?
+              <form method="POST"
+                action="/view/tickets/{{ ticket.id }}/feedback"
+                style="display:inline;">
+                <input type="hidden" name="helpful" value="true"/>
+                <button type="submit" class="btn btn-success btn-sm">
+                  👍 Yes
+                </button>
+              </form>
+              <form method="POST"
+                action="/view/tickets/{{ ticket.id }}/feedback"
+                style="display:inline;">
+                <input type="hidden" name="helpful" value="false"/>
+                <button type="submit" class="btn btn-danger btn-sm">
+                  👎 No
+                </button>
+              </form>
+            </div>
+            {% else %}
+            <div style="margin-top:12px;font-size:12.5px;color:var(--text-3);">
+              Feedback recorded:
+              {{ '👍 Helpful' if ticket.feedback.helpful else '👎 Not helpful' }}
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Activity Timeline -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">◐</span> Activity Timeline
+          </div>
+          <span style="font-size:12px;color:var(--text-3);">
+            {{ ticket.logs|length }}
+            event{% if ticket.logs|length != 1 %}s{% endif %}
+          </span>
+        </div>
+        <div class="card-pad">
+          {% if ticket.logs %}
+          <div class="timeline">
+            {% for log in ticket.logs %}
+            <div class="tl-item">
+              <div class="tl-dot
+                {{ 'tl-dot-ai' if log.actor in ['AI System','Escalation System']
+                   else 'tl-dot-user' }}">
+                {{ '⚡' if log.actor in ['AI System','Escalation System'] else '◉' }}
+              </div>
+              <div class="tl-content">
+                <div class="tl-action">{{ log.action }}</div>
+                <div class="tl-meta">
+                  {{ log.actor }} ·
+                  {{ log.created_at.strftime('%d %b %Y, %I:%M %p') }}
+                </div>
+                {% if log.note %}
+                <div class="tl-note">
+                  {{ log.note[:200] }}
+                  {% if log.note|length > 200 %}…{% endif %}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="empty-state" style="padding:28px 0;">
+            <div class="empty-icon">◎</div>
+            No activity yet
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── RIGHT COLUMN ───────────────────── -->
+    <div class="detail-right">
+
+      <!-- Update Status -->
+      <div class="side-card">
+        <div class="side-card-head">⬡ Update Status</div>
+        <div class="side-card-body">
+          <form method="POST"
+            action="/view/tickets/{{ ticket.id }}/status">
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-control" name="status">
+                {% for s in ['New','Assigned','In Progress',
+                             'Pending Info','Resolved','Closed'] %}
+                  <option value="{{ s }}"
+                    {% if ticket.status == s %}selected{% endif %}>
+                    {{ s }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                Internal Note
+                <span style="color:var(--text-3);">(optional)</span>
+              </label>
+              <textarea class="form-control" name="note" rows="2"
+                placeholder="Add context for your team..."
+                style="resize:none;"></textarea>
+            </div>
+            <input type="hidden" name="actor" value="Agent"/>
+            <button type="submit" class="btn btn-primary"
+              style="width:100%;justify-content:center;">
+              Update Status
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Smart Assignees -->
+      {% if suggestions %}
+      <div class="side-card">
+        <div class="side-card-head">⚡ Smart Assignees</div>
+        <div class="side-card-body" style="padding:10px;">
+          {% for emp in suggestions %}
+          <div class="assignee-item">
+            <div class="assignee-top">
+              <div>
+                <div class="assignee-name">{{ emp.name }}</div>
+                <div class="assignee-role">{{ emp.role }}</div>
+              </div>
+              <span class="assignee-score">{{ emp.score }}pts</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;
+              align-items:center;margin-bottom:8px;">
+              <span class="avail-dot
+                avail-{{ emp.availability.lower().replace(' ','_') }}"
+                style="font-size:11.5px;color:var(--text-3);">
+                {{ emp.availability }}
+              </span>
+              <span style="font-family:var(--mono);font-size:11px;
+                color:var(--text-3);">
+                {{ emp.current_ticket_load }} open
+              </span>
+            </div>
+            <form method="POST"
+              action="/view/tickets/{{ ticket.id }}/assign">
+              <input type="hidden" name="employee_id" value="{{ emp.id }}"/>
+              <input type="hidden" name="actor" value="Admin"/>
+              <button type="submit" class="btn btn-ghost btn-sm"
+                style="width:100%;justify-content:center;">
+                Assign to {{ emp.name.split()[0] }}
+              </button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Similar Tickets -->
+      {% if similar %}
+      <div class="side-card">
+        <div class="side-card-head">◈ Similar Tickets</div>
+        <div class="side-card-body" style="padding:10px;">
+          {% for s in similar %}
+          <a href="/view/tickets/{{ s.id }}"
+            style="display:block;text-decoration:none;
+              background:var(--bg-3);border:1px solid var(--border);
+              border-radius:var(--radius);padding:10px 12px;
+              margin-bottom:8px;transition:border-color 0.15s;"
+            onmouseover="this.style.borderColor='var(--border-2)'"
+            onmouseout="this.style.borderColor='var(--border)'">
+            <div style="display:flex;justify-content:space-between;
+              align-items:flex-start;margin-bottom:6px;">
+              <span style="font-family:var(--mono);font-size:11px;
+                color:var(--text-3);">#{{ s.id }}</span>
+              <span style="font-family:var(--mono);font-size:11px;
+                font-weight:600;background:var(--accent-glow);
+                color:var(--accent-2);border-radius:4px;
+                padding:1px 6px;">
+                {{ s.similarity }}% match
+              </span>
+            </div>
+            <div style="font-size:13px;font-weight:500;
+              color:var(--text-1);margin-bottom:6px;
+              overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              {{ s.title }}
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;
+              flex-wrap:wrap;">
+              {% set st = s.status.lower().replace(' ','_') %}
+              <span class="badge badge-{{ st }}"
+                style="font-size:10px;padding:1px 6px;">
+                {{ s.status }}
+              </span>
+              <span class="badge badge-{{ s.severity.lower() }}"
+                style="font-size:10px;padding:1px 6px;">
+                {{ s.severity }}
+              </span>
+            </div>
+            {% if s.shared_keywords %}
+            <div style="margin-top:7px;font-size:11px;
+              color:var(--text-3);">
+              Shared: {{ s.shared_keywords[:4]|join(', ') }}
+            </div>
+            {% endif %}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Ticket Info -->
+      <div class="side-card">
+        <div class="side-card-head">◎ Info</div>
+        <div class="side-card-body">
+          <div class="info-kv">
+            {% for k, v in [
+              ('Submitter', ticket.submitter_name),
+              ('Email',     ticket.submitter_email),
+              ('Created',   ticket.created_at.strftime('%d %b %Y')),
+              ('Updated',   ticket.updated_at.strftime('%d %b %Y')
+                            if ticket.updated_at else '—'),
+              ('Resolved',  ticket.resolved_at.strftime('%d %b %Y')
+                            if ticket.resolved_at else '—'),
+            ] %}
+            <div class="kv-row">
+              <span class="kv-key">{{ k }}</span>
+              <span class="kv-val">{{ v }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}

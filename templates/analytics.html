@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Analytics · TicketAI{% endblock %}
+{% block breadcrumb %}Analytics{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <div class="page-head-title">Analytics</div>
+    <div class="page-head-sub">System-wide insights across all tickets</div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card purple">
+    <div class="stat-icon-wrap purple">◈</div>
+    <div class="stat-number" data-count="{{ summary.total_tickets }}">{{ summary.total_tickets }}</div>
+    <div class="stat-label">Total Tickets</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-icon-wrap blue">🕐</div>
+    <div class="stat-number" data-count="{{ summary.open_tickets }}">{{ summary.open_tickets }}</div>
+    <div class="stat-label">Open Tickets</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon-wrap green">⚡</div>
+    <div class="stat-number" data-count="{{ summary.auto_resolved }}">{{ summary.auto_resolved }}</div>
+    <div class="stat-label">Auto-Resolved</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon-wrap amber">◎</div>
+    <div class="stat-number">{{ summary.auto_resolution_success_rate }}</div>
+    <div class="stat-label">AI Success Rate</div>
+  </div>
+</div>
+
+<div class="charts-grid">
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><span class="card-title-icon">⬡</span> By Department</div>
+    </div>
+    <div class="card-pad">
+      {% if dept_data %}
+        {% set max_d = dept_data|map(attribute='ticket_count')|max %}
+        <div class="chart-rows">
+          {% for row in dept_data %}
+          <div class="chart-row">
+            <div class="chart-label">{{ row.department }}</div>
+            <div class="chart-track">
+              <div class="chart-fill" style="width:{{ [((row.ticket_count / max_d) * 100)|int, 4]|max }}%;background:var(--accent);">
+                {% if ((row.ticket_count / max_d)*100)|int > 18 %}{{ row.ticket_count }}{% endif %}
+              </div>
+            </div>
+            <div class="chart-count">{{ row.ticket_count }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding:32px 0;">No data yet</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><span class="card-title-icon">◈</span> Top Categories</div>
+    </div>
+    <div class="card-pad">
+      {% if cat_data %}
+        {% set max_c = cat_data|map(attribute='count')|max %}
+        {% set cat_colors = ['#7c6af7','#06b6d4','#10b981','#f59e0b','#ef4444'] %}
+        <div class="chart-rows">
+          {% for row in cat_data %}
+          <div class="chart-row">
+            <div class="chart-label">{{ row.category }}</div>
+            <div class="chart-track">
+              <div class="chart-fill" style="width:{{ [((row.count / max_c)*100)|int, 4]|max }}%;background:{{ cat_colors[loop.index0 % 5] }};">
+                {% if ((row.count / max_c)*100)|int > 18 %}{{ row.count }}{% endif %}
+              </div>
+            </div>
+            <div class="chart-count">{{ row.count }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding:32px 0;">No data yet</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><span class="card-title-icon">◎</span> By Severity</div>
+    </div>
+    <div class="card-pad">
+      {% if sev_data %}
+        {% set max_s = sev_data|map(attribute='count')|max %}
+        {% set sev_c = {'Critical':'#ef4444','High':'#f97316','Medium':'#eab308','Low':'#22c55e'} %}
+        <div class="chart-rows">
+          {% for row in sev_data %}
+          <div class="chart-row">
+            <div class="chart-label">{{ row.severity }}</div>
+            <div class="chart-track">
+              <div class="chart-fill" style="width:{{ [((row.count / max_s)*100)|int, 4]|max }}%;background:{{ sev_c.get(row.severity,'#7c6af7') }};">
+                {% if ((row.count / max_s)*100)|int > 18 %}{{ row.count }}{% endif %}
+              </div>
+            </div>
+            <div class="chart-count">{{ row.count }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding:32px 0;">No data yet</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><span class="card-title-icon">⬡</span> By Status</div>
+    </div>
+    <div class="card-pad">
+      {% if status_data %}
+        {% set max_st = status_data|map(attribute='count')|max %}
+        <div class="chart-rows">
+          {% for row in status_data %}
+          <div class="chart-row">
+            <div class="chart-label">{{ row.status }}</div>
+            <div class="chart-track">
+              <div class="chart-fill" style="width:{{ [((row.count / max_st)*100)|int, 4]|max }}%;background:#818cf8;">
+                {% if ((row.count / max_st)*100)|int > 18 %}{{ row.count }}{% endif %}
+              </div>
+            </div>
+            <div class="chart-count">{{ row.count }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding:32px 0;">No data yet</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

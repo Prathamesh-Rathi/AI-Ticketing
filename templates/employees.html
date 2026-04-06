@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Team · TicketAI{% endblock %}
+{% block breadcrumb %}Team{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <div class="page-head-title">Team Directory</div>
+    <div class="page-head-sub">{{ employees|length }} active member{% if employees|length != 1 %}s{% endif %}</div>
+  </div>
+  <button class="btn btn-primary" onclick="openModal('add-modal')">＋ Add Member</button>
+</div>
+
+<div class="card">
+  <div class="table-outer">
+    <table>
+      <thead>
+        <tr>
+          <th>Member</th><th>Role</th><th>Department</th>
+          <th>Skills</th><th>Load</th><th>Availability</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for emp in employees %}
+        <tr>
+          <td>
+            <div style="font-weight:500;color:var(--text-1);">{{ emp.name }}</div>
+            <div style="font-size:11.5px;font-family:var(--mono);color:var(--text-3);">{{ emp.email }}</div>
+          </td>
+          <td class="td-muted">{{ emp.role }}</td>
+          <td class="td-muted">{{ dept_map.get(emp.department_id, '—') }}</td>
+          <td>
+            {% for skill in emp.skill_tags.split(',')[:3] if skill.strip() %}
+              <span class="skill-chip">{{ skill.strip() }}</span>
+            {% endfor %}
+          </td>
+          <td>
+            <span class="load-chip {{ 'load-high' if emp.current_ticket_load > 5 else 'load-ok' }}">
+              {{ emp.current_ticket_load }}
+            </span>
+          </td>
+          <td>
+            <span class="avail-dot avail-{{ emp.availability.lower().replace(' ','_') }}" style="font-size:13px;color:var(--text-2);">
+              {{ emp.availability }}
+            </span>
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <a href="/employees/{{ emp.id }}/edit" class="btn btn-ghost btn-icon btn-sm" title="Edit">✎</a>
+              <form method="POST" action="/employees/{{ emp.id }}/deactivate"
+                onsubmit="return confirmAction('Remove {{ emp.name }} from team?')">
+                <button type="submit" class="btn btn-danger btn-icon btn-sm" title="Remove">✕</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <div class="empty-icon">◉</div>
+              No team members yet
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add Member Modal -->
+<div class="modal-overlay" id="add-modal" onclick="closeModal('add-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h2>Add Team Member</h2>
+      <button class="btn btn-ghost btn-sm btn-icon" onclick="closeModal('add-modal')">✕</button>
+    </div>
+    <form method="POST" action="/employees">
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input class="form-control" name="name" placeholder="Riya Sharma" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-control" name="email" type="email" placeholder="riya@company.com" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Role</label>
+          <input class="form-control" name="role" placeholder="Senior Engineer" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Department</label>
+          <select class="form-control" name="department_id" required>
+            <option value="">Select department...</option>
+            {% for dept in departments %}
+              <option value="{{ dept.id }}">{{ dept.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Skill Tags <span style="color:var(--text-3);">(comma separated)</span></label>
+        <input class="form-control" name="skill_tags" placeholder="Python, Database, Networking"/>
+      </div>
+      <div class="form-group" style="margin-bottom:20px;">
+        <label class="form-label">Availability</label>
+        <select class="form-control" name="availability">
+          <option>Available</option><option>Busy</option><option>On Leave</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;">Add Member</button>
+        <button type="button" class="btn btn-ghost" onclick="closeModal('add-modal')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

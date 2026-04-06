@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}TicketAI{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="/" class="sidebar-brand">
+    <div class="brand-mark">⚡</div>
+    <div>
+      <div class="brand-name">TicketAI</div>
+      <div class="brand-sub">Support Platform</div>
+    </div>
+  </a>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Menu</div>
+    <a href="/"               class="nav-item {% if active=='dashboard' %}active{% endif %}"><span class="nav-icon">⬡</span> Dashboard</a>
+    <a href="/view/tickets"   class="nav-item {% if active=='tickets'   %}active{% endif %}"><span class="nav-icon">◈</span> Tickets</a>
+    <a href="/submit"         class="nav-item {% if active=='submit'    %}active{% endif %}"><span class="nav-icon">＋</span> New Ticket</a>
+
+    <div class="sidebar-label">Admin</div>
+    <a href="/employees"      class="nav-item {% if active=='employees' %}active{% endif %}"><span class="nav-icon">◉</span> Team</a>
+    <a href="/analytics"      class="nav-item {% if active=='analytics' %}active{% endif %}"><span class="nav-icon">◎</span> Analytics</a>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="footer-dot"></div>
+    <span class="footer-text">Groq · llama-3.1-8b · Live</span>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="breadcrumb">
+        <span class="breadcrumb-item">TicketAI</span>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-item current">{% block breadcrumb %}Home{% endblock %}</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a href="/submit" class="btn btn-primary btn-sm">＋ New Ticket</a>
+    </div>
+  </header>
+
+  <div class="page-body">
+    {% if flash_success %}
+      <div class="flash-bar flash-success">✓ &nbsp;{{ flash_success }}</div>
+    {% endif %}
+    {% if flash_error %}
+      <div class="flash-bar flash-error">✕ &nbsp;{{ flash_error }}</div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<script src="/static/js/main.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

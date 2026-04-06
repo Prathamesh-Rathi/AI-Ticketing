@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · TicketAI{% endblock %}
+{% block breadcrumb %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <div>
+    <div class="page-head-title">Good to see you 👋</div>
+    <div class="page-head-sub">Here's what's happening across your support queue</div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card purple">
+    <div class="stat-icon-wrap purple">🎫</div>
+    <div class="stat-number" data-count="{{ summary.total_tickets }}">{{ summary.total_tickets }}</div>
+    <div class="stat-label">Total Tickets</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-icon-wrap blue">🕐</div>
+    <div class="stat-number" data-count="{{ summary.open_tickets }}">{{ summary.open_tickets }}</div>
+    <div class="stat-label">Open</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon-wrap green">✓</div>
+    <div class="stat-number" data-count="{{ summary.resolved_tickets }}">{{ summary.resolved_tickets }}</div>
+    <div class="stat-label">Resolved</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon-wrap green">⚡</div>
+    <div class="stat-number" data-count="{{ summary.auto_resolved }}">{{ summary.auto_resolved }}</div>
+    <div class="stat-label">Auto-Resolved</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon-wrap amber">◎</div>
+    <div class="stat-number">{{ summary.auto_resolution_success_rate }}</div>
+    <div class="stat-label">AI Success Rate</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">
+      <span class="card-title-icon">◈</span>
+      Recent Tickets
+    </div>
+    <a href="/view/tickets" class="btn btn-ghost btn-sm">View all →</a>
+  </div>
+  <div class="table-outer">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Title</th>
+          <th>Submitter</th>
+          <th>Status</th>
+          <th>Severity</th>
+          <th>Category</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in recent_tickets %}
+        <tr class="row-link" onclick="location.href='/view/tickets/{{ t.id }}'">
+          <td class="td-mono">#{{ t.id }}</td>
+          <td class="td-title">{{ t.title }}</td>
+          <td class="td-muted">{{ t.submitter_name }}</td>
+          <td>
+            {% set s = t.status.lower().replace(' ','_') %}
+            <span class="badge badge-{{ s }}">{{ t.status }}</span>
+          </td>
+          <td>
+            {% if t.ai_analysis %}
+              <span class="badge badge-{{ t.ai_analysis.severity.lower() }}">{{ t.ai_analysis.severity }}</span>
+            {% else %}<span class="td-muted">—</span>{% endif %}
+          </td>
+          <td class="td-muted">{{ t.ai_analysis.category if t.ai_analysis else '—' }}</td>
+          <td class="td-mono">{{ t.created_at.strftime('%d %b') }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <div class="empty-icon">◈</div>
+              No tickets yet —
+              <a href="/submit" style="color:var(--accent-2);">submit the first one</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

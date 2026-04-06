@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}New Ticket · TicketAI{% endblock %}
+{% block breadcrumb %}New Ticket{% endblock %}
+{% block content %}
+
+<div class="submit-wrap">
+  <div class="page-head">
+    <div>
+      <div class="page-head-title">Submit a Ticket</div>
+      <div class="page-head-sub">
+        AI will analyze, categorize and route it instantly
+      </div>
+    </div>
+  </div>
+
+  <div class="ai-banner">
+    <div class="ai-banner-icon">⚡</div>
+    <div>
+      <div class="ai-banner-title">
+        Powered by Groq AI · llama-3.1-8b-instant
+      </div>
+      <div class="ai-banner-sub">
+        Instant severity detection · Smart department routing ·
+        Auto-resolution for common issues
+      </div>
+    </div>
+  </div>
+
+  <!-- Similar tickets hint (shown while typing) -->
+  <div id="similar-hint" style="display:none;margin-bottom:16px;">
+    <div class="card" style="border-color:rgba(124,106,247,0.25);">
+      <div class="card-header" style="padding:12px 16px;">
+        <div class="card-title" style="font-size:12.5px;">
+          <span style="font-size:14px;">◈</span>
+          Similar tickets found — your issue may already be resolved
+        </div>
+        <button
+          onclick="document.getElementById('similar-hint').style.display='none'"
+          class="btn btn-ghost btn-sm btn-icon">✕</button>
+      </div>
+      <div id="similar-list"
+        style="padding:10px;display:flex;flex-direction:column;gap:8px;">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <span class="card-title-icon">◈</span> Ticket Details
+      </div>
+    </div>
+    <div class="card-pad">
+      <form method="POST" action="/submit" id="ticket-form">
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Your Name</label>
+            <input class="form-control" name="submitter_name"
+              placeholder="Prathamesh Desai" required/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input class="form-control" name="submitter_email"
+              type="email" placeholder="you@company.com" required/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Ticket Title</label>
+          <input class="form-control" name="title" id="ticket-title"
+            placeholder="Describe the issue briefly..." required/>
+        </div>
+
+        <div class="form-group" style="margin-bottom:20px;">
+          <label class="form-label">Detailed Description</label>
+          <textarea class="form-control" name="body" id="ticket-body"
+            rows="6" style="resize:vertical;"
+            placeholder="Include steps to reproduce, error messages, and urgency..."
+            required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="submit-btn"
+          style="width:100%;justify-content:center;
+                 padding:11px;font-size:14px;">
+          ⚡ Submit &amp; Analyze with AI
+        </button>
+
+      </form>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:14px;font-size:12px;
+    color:var(--text-3);">
+    Press
+    <kbd style="background:var(--bg-3);border:1px solid var(--border-2);
+      border-radius:4px;padding:2px 6px;
+      font-family:var(--mono);font-size:11px;">
+      Ctrl+Enter
+    </kbd>
+    to submit
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('ticket-form').addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.key === 'Enter') {
+    document.getElementById('submit-btn').click();
+  }
+});
+
+document.getElementById('ticket-form').addEventListener('submit', function() {
+  const btn = document.getElementById('submit-btn');
+  btn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite;margin-right:8px;vertical-align:middle;"></span> AI is analyzing...';
+  btn.disabled = true;
+  document.getElementById('similar-hint').style.display = 'none';
+});
+
+let searchTimer;
+const titleInput = document.getElementById('ticket-title');
+const bodyInput  = document.getElementById('ticket-body');
+
+function searchSimilar() {
+  const title = titleInput.value.trim();
+  if (title.length < 8) {
+    document.getElementById('similar-hint').style.display = 'none';
+    return;
+  }
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async () => {
+    try {
+      const res = await fetch('/api/similar-search', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          title: title,
+          body:  bodyInput.value.trim() || title
+        })
+      });
+      const data = await res.json();
+      if (data.similar && data.similar.length > 0) {
+        renderSimilar(data.similar);
+      } else {
+        document.getElementById('similar-hint').style.display = 'none';
+      }
+    } catch(e) {}
+  }, 800);
+}
+
+function renderSimilar(items) {
+  const sevColors = {
+    Critical: '#f87171', High: '#fb923c',
+    Medium: '#fbbf24',   Low: '#4ade80'
+  };
+  const list = document.getElementById('similar-list');
+  list.innerHTML = items.map(s => `
+    <a href="/view/tickets/${s.id}" target="_blank"
+      style="display:flex;justify-content:space-between;
+        align-items:center;background:var(--bg-3);
+        border:1px solid var(--border);border-radius:8px;
+        padding:10px 14px;text-decoration:none;
+        transition:border-color 0.15s;"
+      onmouseover="this.style.borderColor='var(--border-2)'"
+      onmouseout="this.style.borderColor='var(--border)'">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:500;color:var(--text-1);
+          overflow:hidden;text-overflow:ellipsis;
+          white-space:nowrap;margin-bottom:4px;">
+          ${s.title}
+        </div>
+        <div style="font-size:11.5px;color:var(--text-3);">
+          #${s.id} · ${s.status} · ${s.category}
+          ${s.shared_keywords.length
+            ? ' · shared: ' + s.shared_keywords.slice(0,3).join(', ')
+            : ''}
+        </div>
+      </div>
+      <div style="flex-shrink:0;margin-left:12px;text-align:right;">
+        <div style="font-family:var(--mono);font-size:12px;font-weight:600;
+          color:var(--accent-2);background:var(--accent-glow);
+          border-radius:4px;padding:2px 8px;margin-bottom:4px;">
+          ${s.similarity}% match
+        </div>
+        <div style="font-size:11px;
+          color:${sevColors[s.severity] || '#888'};">
+          ${s.severity}
+        </div>
+      </div>
+    </a>
+  `).join('');
+  document.getElementById('similar-hint').style.display = 'block';
+}
+
+titleInput.addEventListener('input', searchSimilar);
+bodyInput.addEventListener('input',  searchSimilar);
+</script>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ emp.name }} · TicketAI{% endblock %}
+{% block breadcrumb %}
+  <a href="/employees" style="color:var(--text-2);text-decoration:none;">Team</a> / Edit
+{% endblock %}
+{% block content %}
+
+<div style="max-width:560px;margin:0 auto;">
+  <div class="page-head">
+    <div>
+      <div class="page-head-title">Edit Team Member</div>
+      <div class="page-head-sub">{{ emp.name }} · {{ emp.email }}</div>
+    </div>
+    <a href="/employees" class="btn btn-ghost">← Back</a>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <span class="card-title-icon">◉</span> Member Details
+      </div>
+    </div>
+    <div class="card-pad">
+      <form method="POST" action="/employees/{{ emp.id }}/edit">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input class="form-control" name="name"
+              value="{{ emp.name }}" required/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              Email
+              <span style="color:var(--text-3);">(read only)</span>
+            </label>
+            <input class="form-control" value="{{ emp.email }}" disabled
+              style="opacity:0.5;cursor:not-allowed;"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Role</label>
+            <input class="form-control" name="role"
+              value="{{ emp.role }}" required/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Department</label>
+            <select class="form-control" name="department_id" required>
+              {% for dept in departments %}
+                <option value="{{ dept.id }}"
+                  {% if dept.id == emp.department_id %}selected{% endif %}>
+                  {{ dept.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Skill Tags
+            <span style="color:var(--text-3);">(comma separated)</span>
+          </label>
+          <input class="form-control" name="skill_tags"
+            value="{{ emp.skill_tags }}"
+            placeholder="Python, Database, Networking"/>
+        </div>
+
+        <div class="form-group" style="margin-bottom:20px;">
+          <label class="form-label">Availability</label>
+          <select class="form-control" name="availability">
+            {% for a in ['Available', 'Busy', 'On Leave'] %}
+              <option value="{{ a }}"
+                {% if emp.availability == a %}selected{% endif %}>
+                {{ a }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="display:flex;gap:8px;">
+          <button type="submit" class="btn btn-primary"
+            style="flex:1;justify-content:center;">
+            Save Changes
+          </button>
+          <a href="/employees" class="btn btn-ghost">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card"
+    style="margin-top:14px;border-color:rgba(239,68,68,0.2);">
+    <div class="card-header"
+      style="border-color:rgba(239,68,68,0.15);">
+      <div class="card-title" style="color:var(--red);">⚠ Danger Zone</div>
+    </div>
+    <div class="card-pad"
+      style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:13.5px;font-weight:500;">Remove from team</div>
+        <div style="font-size:12px;color:var(--text-3);margin-top:3px;">
+          Deactivates {{ emp.name }} and removes them from assignments.
+        </div>
+      </div>
+      <form method="POST" action="/employees/{{ emp.id }}/deactivate"
+        onsubmit="return confirmAction('Remove {{ emp.name }} permanently?')">
+        <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
